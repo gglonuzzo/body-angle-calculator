@@ -1,0 +1,45 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Body Angle Calculator</title>
+  <meta name="theme-color" content="#0b0f14" />
+
+  <!-- ✅ Proper CSS link -->
+  <link rel="stylesheet" href="./styles.css" />
+
+  <!-- Optional favicon (prevents 404 in console) -->
+  <link rel="icon" href="data:," />
+</head>
+<body>
+  <main>
+    <h1>Applied Biomechanics &amp; Performance Lab</h1>
+    <h2>Body Angle Calculator</h2>
+    <div class="author">
+      developed by<br />
+      <strong>Gabriel Lonuzzo, B. Eng</strong>
+      (<a href="mailto:lonuzzog@mcmaster.ca">lonuzzog@mcmaster.ca</a>)
+    </div>
+
+    <div class="stage">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="overlay"></canvas>
+      <div id="metrics">Loading model…</div>
+    </div>
+
+    <div class="controls">
+      <button id="start" disabled>Loading model…</button>
+      <select id="camera"></select>
+    </div>
+
+    <p class="hint">
+      Tip: If the camera doesn’t start on iPad, check <em>Settings → Safari → Camera → Allow</em>.
+    </p>
+  </main>
+
+  <!-- ✅ Your app as an ES module -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
