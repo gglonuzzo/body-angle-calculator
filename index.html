@@ -6,11 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Body Angle Calculator</title>
   <meta name="theme-color" content="#0b0f14" />
-
-  <!-- ✅ Proper CSS link -->
+  <!-- CSS -->
   <link rel="stylesheet" href="./styles.css" />
-
-  <!-- Optional favicon (prevents 404 in console) -->
+  <!-- Optional favicon to silence 404 -->
   <link rel="icon" href="data:," />
 </head>
 <body>
@@ -32,6 +30,12 @@
     <div class="controls">
       <button id="start" disabled>Loading model…</button>
       <select id="camera"></select>
+
+      <!-- NEW: Mirror toggle -->
+      <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+        <input type="checkbox" id="mirrorToggle" checked />
+        Mirror video
+      </label>
     </div>
 
     <p class="hint">
@@ -39,7 +43,7 @@
     </p>
   </main>
 
-  <!-- ✅ Your app as an ES module -->
+  <!-- Your app as an ES module -->
   <script type="module" src="./app.js"></script>
 </body>
 </html>
