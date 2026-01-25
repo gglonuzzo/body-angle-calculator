@@ -14,3 +14,7 @@ All computation occurs locally in the browser. No images or video are stored or 
 Gabriel Lonuzzo, B.Eng  
 Applied Biomechanics & Performance Lab  
 McMaster University
+
+
+## Versioning
+Current stable release: **v1.1-imtp-ranges**

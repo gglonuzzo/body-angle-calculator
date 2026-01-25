@@ -1,3 +1,4 @@
+console.log("Body Angle Calculator — v1.1-imtp-ranges");
 
 // MediaPipe (pinned version)
 import { FilesetResolver, PoseLandmarker } from
