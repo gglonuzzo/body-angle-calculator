@@ -33,10 +33,16 @@ h2 { margin: 4px 0 12px; font-size: 1rem; color: var(--muted); font-weight: 500;
 .stage {
   position: relative;
   width: min(95vw, 900px);
+  min-height: 240px;         /* <-- Add this line */
+  margin: 0 auto;           /* Center horizontally */
+  display: flex;
+  align-items: center;      /* Center vertically */
+  justify-content: center;  /* Center horizontally */
   background: #000;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--line);
+  /* aspect-ratio: removed, set by JS */
 }
 
 #video, #overlay {

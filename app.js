@@ -71,18 +71,14 @@ function resizeCanvasToVideo() {
   const vh = video.videoHeight;
   const stage = video.parentElement;
 
-  // Only set aspect-ratio if we know the video size
+  // Dynamically set aspect ratio once video metadata is available
   if (vw > 0 && vh > 0) {
     stage.style.aspectRatio = `${vw} / ${vh}`;
   }
 
-  // Prefer the video’s intrinsic dimensions once available
-  const targetCssW = vw;
-  const targetCssH = vh;
-
-  // Fallback: if metadata not ready yet, use the current on-screen rect
-  // (we’ll run again on 'loadedmetadata')
-  let targetCssW = stage.getBoundingClientRect().width;
+  // Get the current size of the stage container
+  const stageRect = stage.getBoundingClientRect();
+  let targetCssW = stageRect.width;
   let targetCssH;
 
   if (vw > 0 && vh > 0) {
@@ -91,14 +87,14 @@ function resizeCanvasToVideo() {
     targetCssH = targetCssW / videoAR;
 
     // If the computed height is taller than the stage, fit by height instead
-    if (targetCssH > stage.getBoundingClientRect().height) {
-      targetCssH = stage.getBoundingClientRect().height;
+    if (targetCssH > stageRect.height) {
+      targetCssH = stageRect.height;
       targetCssW = targetCssH * videoAR;
     }
   } else {
     // Before metadata is ready, keep current stage aspect (less ideal but OK)
-    const stageAR = stage.getBoundingClientRect().width / Math.max(1, stage.getBoundingClientRect().height);
-    targetCssH = stage.getBoundingClientRect().width / Math.max(0.0001, stageAR);
+    const stageAR = stageRect.width / Math.max(1, stageRect.height);
+    targetCssH = stageRect.width / Math.max(0.0001, stageAR);
   }
 
   // Apply CSS sizes to both video and canvas (they share the same box)
