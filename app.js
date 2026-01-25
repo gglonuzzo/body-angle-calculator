@@ -66,11 +66,17 @@ const IDEAL_RANGES = {
 
 // ---- Helpers ----
 function resizeCanvasToVideo() {
-  const rect = video.getBoundingClientRect();
+  // Use videoWidth/videoHeight for actual video pixel size
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  if (width && height) {
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
 }
 
 async function listCameras() {
@@ -95,7 +101,7 @@ async function startCamera() {
     stream = await navigator.mediaDevices.getUserMedia({
       video: {
         deviceId: cameraSel.value ? { exact: cameraSel.value } : undefined,
-        facingMode: "user", // user/front by default; user can pick back from the dropdown
+        facingMode: "user",
         width: { ideal: 1280 },
         height: { ideal: 720 }
       },
@@ -103,8 +109,8 @@ async function startCamera() {
     });
     video.srcObject = stream;
     await video.play();
-    applyMirror();
     resizeCanvasToVideo();
+    applyMirror();
     await listCameras();
     running = true;
     requestAnimationFrame(loop);
@@ -222,8 +228,8 @@ function drawPose(landmarks) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!landmarks?.length) return;
 
-  const W = canvas.width / (window.devicePixelRatio || 1);
-  const H = canvas.height / (window.devicePixelRatio || 1);
+  const W = video.videoWidth;
+  const H = video.videoHeight;
   const mapX = mirror ? (x) => W - x : (x) => x;
 
   // Lines
@@ -315,7 +321,19 @@ startBtn.addEventListener("click", () => {
   startCamera();
 });
 
-window.addEventListener("resize", resizeCanvasToVideo);
+// Debounce utility
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+const debouncedResize = debounce(resizeCanvasToVideo, 200);
+
+window.addEventListener("resize", debouncedResize);
+window.addEventListener("orientationchange", () => setTimeout(resizeCanvasToVideo, 200));
 video.addEventListener("loadedmetadata", resizeCanvasToVideo);
 
 init();
