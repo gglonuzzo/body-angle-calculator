@@ -67,11 +67,44 @@ const IDEAL_RANGES = {
 // ---- Helpers ----
 function resizeCanvasToVideo() {
   const dpr = window.devicePixelRatio || 1;
-  const rect = video.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + "px";
-  canvas.style.height = rect.height + "px";
+
+  // Prefer the video’s intrinsic dimensions once available
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  // Fallback: if metadata not ready yet, use the current on-screen rect
+  // (we’ll run again on 'loadedmetadata')
+  const stageRect = video.parentElement.getBoundingClientRect();
+  let targetCssW = stageRect.width;
+  let targetCssH;
+
+  if (vw > 0 && vh > 0) {
+    const videoAR = vw / vh;
+    // Fill the width of the stage, compute height by aspect
+    targetCssH = targetCssW / videoAR;
+
+    // If the computed height is taller than the stage, fit by height instead
+    if (targetCssH > stageRect.height) {
+      targetCssH = stageRect.height;
+      targetCssW = targetCssH * videoAR;
+    }
+  } else {
+    // Before metadata is ready, keep current stage aspect (less ideal but OK)
+    const stageAR = stageRect.width / Math.max(1, stageRect.height);
+    targetCssH = stageRect.width / Math.max(0.0001, stageAR);
+  }
+
+  // Apply CSS sizes to both video and canvas (they share the same box)
+  video.style.width  = `${targetCssW}px`;
+  video.style.height = `${targetCssH}px`;
+  canvas.style.width  = `${targetCssW}px`;
+  canvas.style.height = `${targetCssH}px`;
+
+  // Size the drawing buffer for sharpness
+  canvas.width  = Math.round(targetCssW * dpr);
+  canvas.height = Math.round(targetCssH * dpr);
+
+  // Draw in CSS coordinates, scaled up by DPR
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
