@@ -66,17 +66,13 @@ const IDEAL_RANGES = {
 
 // ---- Helpers ----
 function resizeCanvasToVideo() {
-  // Use videoWidth/videoHeight for actual video pixel size
   const dpr = window.devicePixelRatio || 1;
-  const width = video.videoWidth;
-  const height = video.videoHeight;
-  if (width && height) {
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = width + "px";
-    canvas.style.height = height + "px";
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
+  const rect = video.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + "px";
+  canvas.style.height = rect.height + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 async function listCameras() {
@@ -228,8 +224,8 @@ function drawPose(landmarks) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!landmarks?.length) return;
 
-  const W = video.videoWidth;
-  const H = video.videoHeight;
+  const W = canvas.width / (window.devicePixelRatio || 1);
+  const H = canvas.height / (window.devicePixelRatio || 1);
   const mapX = mirror ? (x) => W - x : (x) => x;
 
   // Lines
