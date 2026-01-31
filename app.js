@@ -8,7 +8,7 @@ Change log:
   added radio buttons for laterality (left/right/both) selection; metrics and feedback markers update based on selected side
 */
 
-console.log("Body Angle Calculator — v1.1-imtp-ranges");
+console.log("Body Angle Calculator — v1.3-markers-and-laterality");
 
 // MediaPipe (pinned version)
 import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
