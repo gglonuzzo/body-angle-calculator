@@ -1,5 +1,12 @@
-console.log("Body Angle Calculator — v1.1-imtp-ranges");
-
+/*
+Change log:
+  added color feedback to joint angles based on ideal ranges; added smoothing to landmarks and angle calculations;
+  added radio buttons for laterality (left/right) selection
+*/
+v1.3-markers-and-laterality: removed elbow and wrist markers; changed default connection color to cyan; 
+  added color feedback to joint angles based on ideal ranges; added smoothing to landmarks and angle calculations;
+  added radio buttons for laterality (left/right/both) selection;
+  metrics and feedback markers update based on selected side
 // MediaPipe (pinned version)
 import { FilesetResolver, PoseLandmarker } from
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
@@ -30,21 +37,45 @@ const IDX = {
   LEFT_FOOT_INDEX: 31, RIGHT_FOOT_INDEX: 32
 };
 
+// Map angles to landmark indices for feedback overlay
+const ANGLE_LANDMARK_MAP = {
+  Left_Hip_Angle:   [IDX.LEFT_HIP],
+  Right_Hip_Angle:  [IDX.RIGHT_HIP],
+  Left_Knee_Angle:  [IDX.LEFT_KNEE],
+  Right_Knee_Angle: [IDX.RIGHT_KNEE],
+  Trunk_Angle:      [IDX.LEFT_SHOULDER, IDX.RIGHT_SHOULDER],
+};
+
+// --- Feedback side selection ---
+let feedbackSide = 'left'; // default
+const sideRadios = document.getElementsByName('feedbackSide');
+for (const radio of sideRadios) {
+  radio.addEventListener('change', (e) => {
+    if (e.target.checked) feedbackSide = e.target.value;
+  });
+}
+
+// Feedback color logic
+function getFeedbackColor(angleName, value) {
+  const range = IDEAL_RANGES[angleName];
+  if (!range || typeof value !== "number") return "#888888"; // gray for N/A
+  const [min, max] = range;
+  if (value >= min && value <= max) return "#00ff00"; // green
+  const deviation = value < min ? min - value : value - max;
+  const percent_out = deviation / (max - min);
+  if (percent_out <= 0.2) return "#ffff00"; // yellow
+  return "#ff0000"; // red
+}
+
 // ---- Connections to draw ----
 const RELEVANT_LANDMARKS = [
   IDX.LEFT_SHOULDER, IDX.RIGHT_SHOULDER,
-  IDX.LEFT_ELBOW, IDX.RIGHT_ELBOW,
-  IDX.LEFT_WRIST, IDX.RIGHT_WRIST,
   IDX.LEFT_HIP, IDX.RIGHT_HIP,
   IDX.LEFT_KNEE, IDX.RIGHT_KNEE,
   IDX.LEFT_ANKLE, IDX.RIGHT_ANKLE
 ];
 
 const CUSTOM_CONNECTIONS = [
-  [IDX.LEFT_SHOULDER, IDX.LEFT_ELBOW],
-  [IDX.LEFT_ELBOW, IDX.LEFT_WRIST],
-  [IDX.RIGHT_SHOULDER, IDX.RIGHT_ELBOW],
-  [IDX.RIGHT_ELBOW, IDX.RIGHT_WRIST],
   [IDX.LEFT_HIP, IDX.LEFT_KNEE],
   [IDX.LEFT_KNEE, IDX.LEFT_ANKLE],
   [IDX.RIGHT_HIP, IDX.RIGHT_KNEE],
@@ -65,6 +96,61 @@ const IDEAL_RANGES = {
 };
 
 // ---- Helpers ----
+// ---- Helpers ----
+
+// --- Smoothing (Exponential Moving Average) ---
+const SMOOTHING_ALPHA = 0.9; // 0.0 = no smoothing, 1.0 = no memory
+let smoothedAngles = null;
+function smoothAngles(newAngles) {
+  if (!newAngles) {
+    smoothedAngles = null;
+    return null;
+  }
+  if (!smoothedAngles) {
+    smoothedAngles = { ...newAngles };
+    return smoothedAngles;
+  }
+  for (const key of Object.keys(newAngles)) {
+    const val = newAngles[key];
+    if (typeof val === "number") {
+      if (typeof smoothedAngles[key] !== "number") smoothedAngles[key] = val;
+      else smoothedAngles[key] = SMOOTHING_ALPHA * val + (1 - SMOOTHING_ALPHA) * smoothedAngles[key];
+    } else {
+      smoothedAngles[key] = val;
+    }
+  }
+  return smoothedAngles;
+}
+
+// --- Landmark Smoothing (EMA) ---
+const LANDMARK_SMOOTHING_ALPHA = 0.4;
+let smoothedLandmarks = null;
+function smoothLandmarks(newLandmarks) {
+  if (!newLandmarks || !Array.isArray(newLandmarks)) {
+    smoothedLandmarks = null;
+    return null;
+  }
+  if (!smoothedLandmarks || smoothedLandmarks.length !== newLandmarks.length) {
+    smoothedLandmarks = newLandmarks.map(lm => lm ? { ...lm } : null);
+    return smoothedLandmarks;
+  }
+  for (let i = 0; i < newLandmarks.length; i++) {
+    const lm = newLandmarks[i];
+    if (!lm) {
+      smoothedLandmarks[i] = null;
+      continue;
+    }
+    if (!smoothedLandmarks[i]) {
+      smoothedLandmarks[i] = { ...lm };
+      continue;
+    }
+    // Smooth x, y, z if present
+    for (const key of ["x", "y", "z"])
+      if (typeof lm[key] === "number")
+        smoothedLandmarks[i][key] = LANDMARK_SMOOTHING_ALPHA * lm[key] + (1 - LANDMARK_SMOOTHING_ALPHA) * smoothedLandmarks[i][key];
+  }
+  return smoothedLandmarks;
+}
 function resizeCanvasToVideo() {
   const dpr = window.devicePixelRatio || 1;
   const vw = video.videoWidth;
@@ -236,8 +322,16 @@ function renderMetrics(angles) {
     return;
   }
   const lines = [];
-  const keysInOrder = Object.keys(IDEAL_RANGES);
-  for (const name of keysInOrder) {
+  // Only show metrics for selected side and trunk
+  let allowedAngles;
+  if (feedbackSide === 'left') {
+    allowedAngles = ['Trunk_Angle', 'Left_Hip_Angle', 'Left_Knee_Angle'];
+  } else if (feedbackSide === 'right') {
+    allowedAngles = ['Trunk_Angle', 'Right_Hip_Angle', 'Right_Knee_Angle'];
+  } else { // both
+    allowedAngles = ['Trunk_Angle', 'Left_Hip_Angle', 'Left_Knee_Angle', 'Right_Hip_Angle', 'Right_Knee_Angle'];
+  }
+  for (const name of allowedAngles) {
     const r = IDEAL_RANGES[name];
     const val = angles[name];
     if (typeof val === "number") {
@@ -266,7 +360,7 @@ function drawPose(landmarks) {
 
   // Lines
   ctx.lineWidth = 2;
-  ctx.strokeStyle = "#00f2ff";
+  ctx.strokeStyle = "#00f2ff"; // color of connections (cyan)
   ctx.beginPath();
   for (const [a, b] of CUSTOM_CONNECTIONS) {
     const p = landmarks[a], q = landmarks[b];
@@ -278,8 +372,8 @@ function drawPose(landmarks) {
   }
   ctx.stroke();
 
-  // Points
-  ctx.fillStyle = "#03fc94";
+  // Draw all default markers (small, cyan)
+  ctx.fillStyle = "#00f2ff";
   for (const i of RELEVANT_LANDMARKS) {
     const p = landmarks[i];
     if (!p) continue;
@@ -287,6 +381,40 @@ function drawPose(landmarks) {
     ctx.beginPath();
     ctx.arc(mapX(x), y, 4, 0, Math.PI * 2);
     ctx.fill();
+  }
+}
+
+// Overlay feedback markers (larger, colored)
+function drawFeedbackMarkers(landmarks, angles) {
+  if (!angles) return;
+  const W = canvas.width / (window.devicePixelRatio || 1);
+  const H = canvas.height / (window.devicePixelRatio || 1);
+  const mapX = mirror ? (x) => W - x : (x) => x;
+  // Show feedback for selected side(s) and trunk
+  let allowedAngles;
+  if (feedbackSide === 'left') {
+    allowedAngles = ['Left_Hip_Angle', 'Left_Knee_Angle', 'Trunk_Angle'];
+  } else if (feedbackSide === 'right') {
+    allowedAngles = ['Right_Hip_Angle', 'Right_Knee_Angle', 'Trunk_Angle'];
+  } else { // both
+    allowedAngles = ['Left_Hip_Angle', 'Left_Knee_Angle', 'Right_Hip_Angle', 'Right_Knee_Angle', 'Trunk_Angle'];
+  }
+  for (const angleName of allowedAngles) {
+    const landmarkIndices = ANGLE_LANDMARK_MAP[angleName];
+    const value = angles[angleName];
+    if (!landmarkIndices || typeof value !== "number") continue;
+    const color = getFeedbackColor(angleName, value);
+    for (const idx of landmarkIndices) {
+      const p = landmarks[idx];
+      if (!p) continue;
+      const x = p.x * W, y = p.y * H;
+      ctx.beginPath();
+      ctx.arc(mapX(x), y, 10, 0, Math.PI * 2); // Larger marker
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.85;
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    }
   }
 }
 
@@ -299,8 +427,13 @@ async function loop() {
   const result = await landmarker.detectForVideo(video, ts);
   const lm = result?.landmarks?.[0] || null;
 
-  drawPose(lm);
-  const angles = lm ? getPoseAngles(lm) : null;
+
+
+  const smoothLm = lm ? smoothLandmarks(lm) : null;
+  const rawAngles = smoothLm ? getPoseAngles(smoothLm) : null;
+  const angles = smoothAngles(rawAngles);
+  drawPose(smoothLm);
+  drawFeedbackMarkers(smoothLm, angles);
   renderMetrics(angles);
 
   requestAnimationFrame(loop);
@@ -326,13 +459,13 @@ async function init() {
     landmarker = await PoseLandmarker.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath:
-          "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+          "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task"
       },
       runningMode: "VIDEO",
       numPoses: 1,
-      minPoseDetectionConfidence: 0.5,
-      minPosePresenceConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      minPoseDetectionConfidence: 0.7, // Increased for more stable detection
+      minPosePresenceConfidence: 0.7,  // Increased for more stable presence
+      minTrackingConfidence: 0.7       // Increased for more stable tracking
     });
 
     startBtn.disabled = false;
