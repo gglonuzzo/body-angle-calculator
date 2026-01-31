@@ -1,15 +1,17 @@
 /*
 Change log:
+- v1.0: Initial release
+- v1.1-imtp-ranges: Updated ideal angle ranges to match Python version used in IMTP study
+- v1.2-mobile_view: updated CSS and JS to improve mobile device layout and usability
+- v1.3-markers-and-laterality: removed elbow and wrist markers; changed default connection color to cyan; 
   added color feedback to joint angles based on ideal ranges; added smoothing to landmarks and angle calculations;
-  added radio buttons for laterality (left/right) selection
+  added radio buttons for laterality (left/right/both) selection; metrics and feedback markers update based on selected side
 */
-v1.3-markers-and-laterality: removed elbow and wrist markers; changed default connection color to cyan; 
-  added color feedback to joint angles based on ideal ranges; added smoothing to landmarks and angle calculations;
-  added radio buttons for laterality (left/right/both) selection;
-  metrics and feedback markers update based on selected side
+
+console.log("Body Angle Calculator — v1.1-imtp-ranges");
+
 // MediaPipe (pinned version)
-import { FilesetResolver, PoseLandmarker } from
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
+import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
 
 const video   = document.getElementById("video");
 const canvas  = document.getElementById("overlay");
