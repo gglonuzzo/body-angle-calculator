@@ -7,7 +7,7 @@ Change log:
 - v1.3-markers-and-laterality: removed elbow and wrist markers; changed default connection color to cyan; 
   added color feedback to joint angles based on ideal ranges; added smoothing to landmarks and angle calculations;
   added radio buttons for laterality (left/right/both) selection; metrics and feedback markers update based on selected side
- - v1.4-3d-angles: switched all angle calculations to use 3D (x, y, z) coordinates from MediaPipe for camera-invariant feedback and improved accuracy regardless of camera position or height; updated hip angle ideal ranges
+ - v1.4-3d-angles: switched all angle calculations to use 3D (x, y, z) coordinates from MediaPipe for camera-invariant feedback and improved accuracy regardless of camera position or height; both hip angle ideal ranges are now [135, 155]
 */
 
 console.log("Body Angle Calculator — v1.4-3d-angles");
@@ -93,7 +93,7 @@ const CUSTOM_CONNECTIONS = [
 // ---- Ideal angle ranges (match your Python) ----
 const IDEAL_RANGES = {
   Trunk_Angle:        [5, 10],
-  Left_Hip_Angle:     [135, 150],
+  Left_Hip_Angle:     [135, 155],
   Right_Hip_Angle:    [135, 155],
   Left_Knee_Angle:    [125, 145],
   Right_Knee_Angle:   [125, 145]
