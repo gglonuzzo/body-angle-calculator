@@ -10,7 +10,7 @@ Change log:
 - v1.4-3d-angles: switched all angle calculations to use 3D (x, y, z) coordinates from MediaPipe for camera-invariant feedback and improved accuracy regardless of camera position or height
 */
 
-console.log("Body Angle Calculator — v1.3-markers-and-laterality");
+console.log("Body Angle Calculator — v1.4-3d-angles");
 
 // MediaPipe (pinned version)
 import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
