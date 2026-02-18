@@ -1,3 +1,4 @@
+
 /*
 Change log:
 - v1.0: Initial release
@@ -6,6 +7,7 @@ Change log:
 - v1.3-markers-and-laterality: removed elbow and wrist markers; changed default connection color to cyan; 
   added color feedback to joint angles based on ideal ranges; added smoothing to landmarks and angle calculations;
   added radio buttons for laterality (left/right/both) selection; metrics and feedback markers update based on selected side
+- v1.4-3d-angles: switched all angle calculations to use 3D (x, y, z) coordinates from MediaPipe for camera-invariant feedback and improved accuracy regardless of camera position or height
 */
 
 console.log("Body Angle Calculator — v1.3-markers-and-laterality");
@@ -240,14 +242,14 @@ async function startCamera() {
   }
 }
 
-// ---- Your 2D angle (returns 180 - acos) ----
+// ---- 3D angle (returns 180 - acos) ----
 function calculateAngle(a, b, c) {
   if (!a || !b || !c) return null;
-  const ab = [b.x - a.x, b.y - a.y];
-  const bc = [c.x - b.x, c.y - b.y];
-  const dot = ab[0]*bc[0] + ab[1]*bc[1];
-  const magAB = Math.hypot(ab[0], ab[1]);
-  const magBC = Math.hypot(bc[0], bc[1]);
+  const ab = [b.x - a.x, b.y - a.y, b.z - a.z];
+  const bc = [c.x - b.x, c.y - b.y, c.z - b.z];
+  const dot = ab[0]*bc[0] + ab[1]*bc[1] + ab[2]*bc[2];
+  const magAB = Math.hypot(ab[0], ab[1], ab[2]);
+  const magBC = Math.hypot(bc[0], bc[1], bc[2]);
   if (magAB === 0 || magBC === 0) return null;
   let cos = dot / (magAB * magBC);
   cos = Math.max(-1, Math.min(1, cos));
@@ -258,22 +260,23 @@ function calculateAngle(a, b, c) {
 function valid(lm) {
   return lm && lm.x >= 0 && lm.x <= 1 && lm.y >= 0 && lm.y <= 1;
 }
-const safe = (lms, i) => (valid(lms?.[i]) ? { x: lms[i].x, y: lms[i].y } : null);
+const safe = (lms, i) => (valid(lms?.[i]) ? { x: lms[i].x, y: lms[i].y, z: lms[i].z } : null);
 
 function midPoint(p1, p2) {
   if (!p1 || !p2) return null;
-  return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+  return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2, z: (p1.z + p2.z) / 2 };
 }
 
-// Trunk angle vs vertical (0, -1), like your Python (no 180-… here)
+// Trunk angle vs vertical (0, -1, 0), like your Python (no 180-… here)
 function trunkAngleWithVertical(shoulder, hip) {
   if (!shoulder || !hip) return "N/A";
-  const v = { x: shoulder.x - hip.x, y: shoulder.y - hip.y }; // hip -> shoulder
-  const vertical = { x: 0, y: -1 }; // up in image coords
-  const dot = v.x * vertical.x + v.y * vertical.y;
-  const magV = Math.hypot(v.x, v.y);
+  const v = { x: shoulder.x - hip.x, y: shoulder.y - hip.y, z: shoulder.z - hip.z }; // hip -> shoulder
+  const vertical = { x: 0, y: -1, z: 0 }; // up in image coords
+  const dot = v.x * vertical.x + v.y * vertical.y + v.z * vertical.z;
+  const magV = Math.hypot(v.x, v.y, v.z);
+  const magVert = 1; // vertical magnitude
   if (magV === 0) return "N/A";
-  let cos = dot / magV; // /1 for vertical magnitude
+  let cos = dot / (magV * magVert);
   cos = Math.max(-1, Math.min(1, cos));
   const angle = Math.acos(cos) * 180 / Math.PI;
   return Math.round(angle * 100) / 100;
